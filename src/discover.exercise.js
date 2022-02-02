@@ -9,20 +9,25 @@ import {Input, BookListUL, Spinner} from './components/lib'
 import {BookRow} from './components/book-row'
 import {client} from './utils/api-client'
 import * as colors from './styles/colors'
+import {useAsync} from 'utils/hooks'
 
 const statuses = {
   IDLE: 'idle',
   SUCCESS: 'success',
   LOADING: 'loading',
-  ERROR: 'error'
+  ERROR: 'error',
 }
 
 function DiscoverBooksScreen() {
+  // TODO: EC2
+  const {data, error, run, isLoading, isError, isSuccess} = useAsync()
+
+  // TODO: Not required for EC2
   // 🐨 add state for status ('idle', 'loading', or 'success'), data, and query
-  const [status, setStatus] = React.useState(statuses.IDLE)
+  // const [status, setStatus] = React.useState(statuses.IDLE)
   const [query, setQuery] = React.useState('')
-  const [data, setData] = React.useState({})
-  const [error, setError] = React.useState(null)
+  // const [data, setData] = React.useState({})
+  // const [error, setError] = React.useState(null)
   // 🐨 you'll also notice that we don't want to run the search until the
   // user has submitted the form, so you'll need a boolean for that as well
   // 💰 I called it "queried"
@@ -34,24 +39,29 @@ function DiscoverBooksScreen() {
   // so you'll want to check if the user has submitted the form yet and if
   // they haven't then return early (💰 this is what the queried state is for).
   React.useEffect(() => {
+    // TODO: EC2
     if (queried === false) return
 
-    setStatus(statuses.LOADING)
-    client(`books?query=${encodeURIComponent(query)}`)
-      .then(response => {
-        setData(response)
-        setStatus(statuses.SUCCESS)
-      })
-      .catch(err => {
-        setError(err)
-        setStatus(statuses.ERROR)
-      })
-  }, [queried, query])
+    run(client(`books?query=${encodeURIComponent(query)}`))
 
+    // TODO: Not required for EC2
+    // setStatus(statuses.LOADING)
+    // client(`books?query=${encodeURIComponent(query)}`)
+    //   .then(response => {
+    //     setData(response)
+    //     setStatus(statuses.SUCCESS)
+    //   })
+    //   .catch(err => {
+    //     setError(err)
+    //     setStatus(statuses.ERROR)
+    //   })
+  }, [queried, query, run])
+
+  // TODO: Not required for EC2
   // 🐨 replace these with derived state values based on the status.
-  const isLoading = status === statuses.LOADING
-  const isSuccess = status === statuses.SUCCESS
-  const isError = status === statuses.ERROR
+  // const isLoading = status === statuses.LOADING
+  // const isSuccess = status === statuses.SUCCESS
+  // const isError = status === statuses.ERROR
 
   function handleSearchSubmit(event) {
     // 🐨 call preventDefault on the event so you don't get a full page reload
