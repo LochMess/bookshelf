@@ -7,6 +7,9 @@ import * as auth from 'auth-provider'
 import {AuthenticatedApp} from './authenticated-app'
 import {UnauthenticatedApp} from './unauthenticated-app'
 import {client} from './utils/api-client.exercise'
+import {useAsync} from './utils/hooks'
+import {FullPageSpinner} from 'components/lib'
+import * as colors from 'styles/colors'
 
 async function loadProfile() {
   let user = null
@@ -14,9 +17,7 @@ async function loadProfile() {
   const token = await auth.getToken()
 
   if (token) {
-    // we're logged in! Let's go get the user's data:
-    await client('me', {Authorization: `Bearer ${token}`}).then(data => {
-      console.log(data.user)
+    await client('me', {token}).then(data => {
       user = data.user
     })
   }
@@ -25,8 +26,17 @@ async function loadProfile() {
 }
 
 function App() {
-  // 🐨 useState for the user
-  const [user, setUser] = React.useState(null)
+  const {
+    data: user,
+    error,
+    isIdle,
+    isLoading,
+    isSuccess,
+    isError,
+    run,
+    setData: setUser,
+  } = useAsync()
+
   // 🐨 create a login function that calls auth.login then sets the user
   // 💰 const login = form => auth.login(form).then(u => setUser(u))
   const login = form => auth.login(form).then(u => setUser(u))
@@ -42,13 +52,27 @@ function App() {
   // 🐨 if there's not a user, then render the UnauthenticatedApp with login and register
 
   React.useEffect(() => {
-    loadProfile().then(user => {
-      console.log('user result', user)
-      setUser(user)
-    })
+    run(loadProfile())
   }, [])
 
-  return user ? (
+  // Kent used seperate if statements for each case with the error one first
+  return isError ? (
+    <div
+      css={{
+        color: colors.danger,
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      <p>Uh oh... There's a problem. Try refreshing the app.</p>
+      <pre>{error.message}</pre>
+    </div>
+  ) : isLoading || isIdle ? (
+    <FullPageSpinner />
+  ) : user ? (
     <AuthenticatedApp user={user} logout={logout} />
   ) : (
     <UnauthenticatedApp login={login} register={register} />
