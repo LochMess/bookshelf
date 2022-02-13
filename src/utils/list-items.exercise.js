@@ -1,11 +1,18 @@
 import {useQuery, useMutation, queryCache} from 'react-query'
 import {client} from './api-client'
+import {setQueryDataForBook} from './books'
 
 function useListItems(user) {
   const {data: listItems} = useQuery({
     queryKey: 'list-items',
     queryFn: () =>
-      client(`list-items`, {token: user.token}).then(data => data.listItems),
+      client(`list-items`, {token: user.token}).then(data => {
+        return data.listItems
+      }),
+    config: {
+      onSuccess: listItems =>
+        listItems.forEach(item => setQueryDataForBook(item.book)),
+    },
   })
 
   return listItems ?? []
@@ -19,34 +26,61 @@ function useListItem(user, bookId) {
 }
 
 const defaultMutationOptions = {
-  onSettled: () => queryCache.invalidateQueries('list-items'),
+  onError(error, paramUpdateWasCalledWith, recover) {
+    if (typeof recover === 'function') {
+      recover()
+    }
+  },
+  onSettled() {
+    queryCache.invalidateQueries('list-items')
+  },
 }
 
-function useUpdateListItem(user) {
-  const [update] = useMutation(
+function useUpdateListItem(user, mutationOptions = {}) {
+  return useMutation(
     updates =>
       client(`list-items/${updates.id}`, {
         method: 'PUT',
         token: user.token,
         data: updates,
       }),
-    defaultMutationOptions,
+    {
+      ...defaultMutationOptions,
+      onMutate(updates) {
+        const originalListItems = queryCache.getQueryData('list-items')
+        queryCache.setQueryData('list-items', oldListItems =>
+          oldListItems.map(item =>
+            item.id === updates.id ? {...item, ...updates} : item,
+          ),
+        )
+        return () => queryCache.setQueryData('list-items', originalListItems)
+      },
+      ...mutationOptions,
+    },
   )
-  return update
 }
 
-function useRemoveListItem(user) {
-  const [remove] = useMutation(
+function useRemoveListItem(user, mutationOptions = {}) {
+  return useMutation(
     id => client(`list-items/${id}`, {method: 'DELETE', token: user.token}),
-    defaultMutationOptions,
+    {
+      ...defaultMutationOptions,
+      onMutate(removeId) {
+        const originalListItems = queryCache.getQueryData('list-items')
+        queryCache.setQueryData('list-items', oldListItems =>
+          oldListItems.filter(item => item.id !== removeId),
+        )
+        return () => queryCache.setQueryData('list-items', originalListItems)
+      },
+      ...mutationOptions,
+    },
   )
-  return remove
 }
 
-function useCreateListItem(user) {
+function useCreateListItem(user, mutationOptions = {}) {
   const [create] = useMutation(
     id => client(`list-items`, {data: {bookId: id}, token: user.token}),
-    defaultMutationOptions,
+    {...defaultMutationOptions, ...mutationOptions},
   )
   return create
 }

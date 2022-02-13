@@ -14,6 +14,7 @@ import {Rating} from 'components/rating'
 import {StatusButtons} from 'components/status-buttons'
 import {useBook} from 'utils/books'
 import {useListItem, useUpdateListItem} from 'utils/list-items'
+import {ErrorMessage, Spinner} from 'components/lib'
 
 function BookScreen({user}) {
   const {bookId} = useParams()
@@ -119,7 +120,7 @@ function NotesTextarea({listItem, user}) {
   //   you can pass as data.
   // 💰 if you want to get the list-items cache updated after this query finishes
   // the use the `onSettled` config option to queryCache.invalidateQueries('list-items')
-  const mutate = useUpdateListItem(user)
+  const [mutate, {error, isError, isLoading}] = useUpdateListItem(user)
 
   const debouncedMutate = React.useMemo(
     () => debounceFn(mutate, {wait: 300}),
@@ -145,6 +146,15 @@ function NotesTextarea({listItem, user}) {
         >
           Notes
         </label>
+        {isLoading ? (
+          <Spinner />
+        ) : isError ? (
+          <ErrorMessage
+            error={error}
+            variant="inline"
+            css={{marginLeft: 6, fontSize: '0.7em'}}
+          />
+        ) : null}
       </div>
       <Textarea
         id="notes"
