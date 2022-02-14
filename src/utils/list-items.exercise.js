@@ -1,16 +1,14 @@
-// 🐨 we're going to use React hooks in here now so we'll need React
 import {useQuery, useMutation, queryCache} from 'react-query'
-// 🐨 get AuthContext from context/auth-context
+import {useClient} from 'context/auth-context'
 import {setQueryDataForBook} from './books'
-import {client} from './api-client'
 
 // 💣 remove the user argument here
-function useListItems(user) {
+function useListItems() {
   // 🐨 get the user from React.useContext(AuthContext)
+  const client = useClient()
   const {data} = useQuery({
     queryKey: 'list-items',
-    queryFn: () =>
-      client(`list-items`, {token: user.token}).then(data => data.listItems),
+    queryFn: () => client(`list-items`).then(data => data.listItems),
     onSuccess: async listItems => {
       for (const listItem of listItems) {
         setQueryDataForBook(listItem.book)
@@ -21,9 +19,9 @@ function useListItems(user) {
 }
 
 // 💣 remove the user argument here
-function useListItem(bookId, user) {
+function useListItem(bookId) {
   // 💣 you no longer need to pass the user here
-  const listItems = useListItems(user)
+  const listItems = useListItems()
   return listItems.find(li => li.bookId === bookId) ?? null
 }
 
@@ -34,14 +32,14 @@ const defaultMutationOptions = {
 }
 
 // 💣 remove the user argument here
-function useUpdateListItem(user, options) {
+function useUpdateListItem(options) {
   // 🐨 get the user from React.useContext(AuthContext)
+  const client = useClient()
   return useMutation(
     updates =>
       client(`list-items/${updates.id}`, {
         method: 'PUT',
         data: updates,
-        token: user.token,
       }),
     {
       onMutate(newItem) {
@@ -62,33 +60,32 @@ function useUpdateListItem(user, options) {
 }
 
 // 💣 remove the user argument here
-function useRemoveListItem(user, options) {
+function useRemoveListItem(options) {
   // 🐨 get the user from React.useContext(AuthContext)
-  return useMutation(
-    ({id}) => client(`list-items/${id}`, {method: 'DELETE', token: user.token}),
-    {
-      onMutate(removedItem) {
-        const previousItems = queryCache.getQueryData('list-items')
+  const client = useClient()
+  return useMutation(({id}) => client(`list-items/${id}`, {method: 'DELETE'}), {
+    onMutate(removedItem) {
+      const previousItems = queryCache.getQueryData('list-items')
 
-        queryCache.setQueryData('list-items', old => {
-          return old.filter(item => item.id !== removedItem.id)
-        })
+      queryCache.setQueryData('list-items', old => {
+        return old.filter(item => item.id !== removedItem.id)
+      })
 
-        return () => queryCache.setQueryData('list-items', previousItems)
-      },
-      ...defaultMutationOptions,
-      ...options,
+      return () => queryCache.setQueryData('list-items', previousItems)
     },
-  )
+    ...defaultMutationOptions,
+    ...options,
+  })
 }
 
 // 💣 remove the user argument here
-function useCreateListItem(user, options) {
+function useCreateListItem(options) {
   // 🐨 get the user from React.useContext(AuthContext)
-  return useMutation(
-    ({bookId}) => client(`list-items`, {data: {bookId}, token: user.token}),
-    {...defaultMutationOptions, ...options},
-  )
+  const client = useClient()
+  return useMutation(({bookId}) => client(`list-items`, {data: {bookId}}), {
+    ...defaultMutationOptions,
+    ...options,
+  })
 }
 
 export {
