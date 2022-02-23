@@ -1,12 +1,13 @@
 // 🐨 you'll need the test server
 // 💰 the way that our tests are set up, you'll find this in `src/test/server/test-server.js`
-import {server, rest} from 'test/server'
 // 🐨 grab the client
 import {client} from '../api-client'
 import * as auth from 'auth-provider'
 import {queryCache} from 'react-query'
+import {server, rest} from 'test/server'
 
 const apiURL = process.env.REACT_APP_API_URL
+
 jest.mock('auth-provider')
 jest.mock('react-query')
 
@@ -14,11 +15,7 @@ jest.mock('react-query')
 // 🐨 add an afterAll to stop the server when `server.close()`
 // 🐨 afterEach test, reset the server handlers to their original handlers
 // via `server.resetHandlers()`
-beforeAll(() => server.listen())
 
-afterAll(() => server.close())
-
-afterEach(() => server.resetHandlers())
 // 🐨 flesh these out:
 
 test('calls fetch at the endpoint with the arguments for GET requests', async () => {
